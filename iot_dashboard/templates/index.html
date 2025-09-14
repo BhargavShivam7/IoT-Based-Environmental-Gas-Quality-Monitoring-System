@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Environmental Dashboard</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js for graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Custom font and dark mode theme */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gray-900 text-white">
+
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-cyan-400">Live Environmental Monitor</h1>
+            <p class="text-gray-400 mt-2">Real-time data from our IoT device</p>
+        </header>
+
+        <!-- Live Data Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <!-- Temperature Card -->
+            <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700">
+                <div class="flex items-center">
+                    <svg class="w-10 h-10 text-red-400 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.657 7.343A8 8 0 0117.657 18.657z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.879 16.121A3 3 0 1014.12 11.88l-4.242 4.242z"></path></svg>
+                    <div>
+                        <h2 class="text-lg font-semibold text-gray-400">Temperature</h2>
+                        <p id="temp-value" class="text-3xl font-bold">-- °C</p>
+                    </div>
+                </div>
+            </div>
+            <!-- Humidity Card -->
+            <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700">
+                 <div class="flex items-center">
+                    <svg class="w-10 h-10 text-blue-400 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"></path></svg>
+                    <div>
+                        <h2 class="text-lg font-semibold text-gray-400">Humidity</h2>
+                        <p id="humidity-value" class="text-3xl font-bold">-- %</p>
+                    </div>
+                </div>
+            </div>
+            <!-- Air Quality Card -->
+            <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700">
+                <div class="flex items-center">
+                    <svg class="w-10 h-10 text-green-400 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path></svg>
+                    <div>
+                        <h2 class="text-lg font-semibold text-gray-400">Air Quality</h2>
+                        <p id="gas-value" class="text-3xl font-bold">--</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart Container -->
+        <div class="bg-gray-800 p-4 md:p-6 rounded-xl shadow-lg border border-gray-700">
+            <canvas id="sensorChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const tempValue = document.getElementById('temp-value');
+        const humidityValue = document.getElementById('humidity-value');
+        const gasValue = document.getElementById('gas-value');
+
+        // Chart.js configuration
+        const ctx = document.getElementById('sensorChart').getContext('2d');
+        const sensorChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [], // Timestamps
+                datasets: [
+                    {
+                        label: 'Temperature (°C)',
+                        data: [],
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        borderWidth: 2,
+                        yAxisID: 'y',
+                    },
+                    {
+                        label: 'Humidity (%)',
+                        data: [],
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        borderWidth: 2,
+                        yAxisID: 'y',
+                    },
+                    {
+                        label: 'Gas Level',
+                        data: [],
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderWidth: 2,
+                        yAxisID: 'y1', // Use a secondary y-axis for gas
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: { 
+                        ticks: { color: 'rgba(255, 255, 255, 0.7)' },
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                    },
+                    y: {
+                        position: 'left',
+                        ticks: { color: 'rgba(255, 255, 255, 0.7)' },
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                        title: { display: true, text: 'Temp/Humidity', color: 'white' }
+                    },
+                    y1: {
+                        position: 'right',
+                        ticks: { color: 'rgba(255, 255, 255, 0.7)' },
+                        grid: { drawOnChartArea: false }, // only show the grid for the primary axis
+                        title: { display: true, text: 'Gas Level (Analog)', color: 'white' }
+                    }
+                },
+                plugins: {
+                    legend: { labels: { color: 'white' } }
+                }
+            }
+        });
+
+        // Function to fetch data and update UI
+        async function updateDashboard() {
+            try {
+                // Fetch data from our backend
+                const response = await fetch('/data');
+                const data = await response.json();
+
+                if (data.length > 0) {
+                    // Update the live data cards with the latest reading (first in the array)
+                    const latest = data[0];
+                    tempValue.textContent = `${parseFloat(latest.temperature).toFixed(1)} °C`;
+                    humidityValue.textContent = `${parseFloat(latest.humidity).toFixed(1)} %`;
+                    gasValue.textContent = latest.gas_level;
+
+                    // Update the chart
+                    // Reverse the data so it plots from oldest to newest
+                    const reversedData = data.reverse();
+                    
+                    sensorChart.data.labels = reversedData.map(d => new Date(d.timestamp).toLocaleTimeString());
+                    sensorChart.data.datasets[0].data = reversedData.map(d => d.temperature);
+                    sensorChart.data.datasets[1].data = reversedData.map(d => d.humidity);
+                    sensorChart.data.datasets[2].data = reversedData.map(d => d.gas_level);
+                    sensorChart.update();
+                }
+
+            } catch (error) {
+                console.error("Failed to fetch data:", error);
+            }
+        }
+
+        // Fetch data every 15 seconds
+        setInterval(updateDashboard, 15000);
+
+        // Fetch data on initial page load
+        updateDashboard();
+    </script>
+</body>
+</html>
