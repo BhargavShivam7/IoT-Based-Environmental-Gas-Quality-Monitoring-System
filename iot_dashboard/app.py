@@ -52,7 +52,7 @@ def handle_data():
         new_data = SensorData(
             temperature=data.get('temperature'),
             humidity=data.get('humidity'),
-            gas_level=data.get('gas')
+            gas_level=data.get('gas_level')
         )
         db.session.add(new_data)
         db.session.commit()

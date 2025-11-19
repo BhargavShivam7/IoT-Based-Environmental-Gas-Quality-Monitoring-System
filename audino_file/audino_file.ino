@@ -21,13 +21,13 @@
 // =================================================================
 // --- CONFIGURATION - YOU MUST EDIT THESE 3 VALUES ---
 // =================================================================
-const char* ssid = "YOUR_WIFI_SSID";         // Your Wi-Fi name
-const char* password = "YOUR_WIFI_PASSWORD";  // Your Wi-Fi password
-const char* serverUrl = "http://your-app-name.onrender.com/data"; // Your Render app URL
+const char* ssid = "DarkHunterOP";         // Your Wi-Fi name
+const char* password = "g5abehq8";  // Your Wi-Fi password
+const char* serverUrl = "http://10.172.130.81:5000/data"; // Your Render app URL
 // =================================================================
 
 // --- SENSOR PINS ---
-#define DHTPIN D4     // Digital pin D4
+#define DHTPIN D3     // Digital pin D4
 #define MQ_PIN A0     // Analog pin A0
 #define DHTTYPE DHT11 // We are using the DHT11 sensor
 
