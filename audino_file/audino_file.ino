@@ -1,114 +1,115 @@
 /*
- * IoT Environmental Monitor Firmware
- * * This code reads data from a DHT11 and an MQ-135 sensor,
- * connects to Wi-Fi, and sends the data as a JSON object
- * to a custom web server via an HTTP POST request.
- * * Hardware:
- * - NodeMCU (ESP8266)
- * - DHT11 Sensor -> Pin D4
- * - MQ-135 Sensor -> Pin A0
- * * Libraries to install via Library Manager:
- * 1. "DHT sensor library" by Adafruit
- * 2. "ArduinoJson" by Benoit Blanchon
+ * IoT Environmental Monitor Firmware (PRO VERSION)
+ * * Hardware: NodeMCU (ESP8266), DHT11, MQ-135
+ * * Libraries: "DHT sensor library", "ArduinoJson"
  */
 
 #include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
 #include <WiFiClient.h>
+#include <WiFiClientSecure.h>
 #include <ArduinoJson.h>
 #include "DHT.h"
 
 // =================================================================
-// --- CONFIGURATION - YOU MUST EDIT THESE 3 VALUES ---
+// --- CONFIGURATION - YOU MUST EDIT THESE VALUES ---
 // =================================================================
 const char* ssid = "DarkHunterOP";         // Your Wi-Fi name
-const char* password = "g5abehq8";  // Your Wi-Fi password
-const char* serverUrl = "http://10.172.130.81:5000/data"; // Your Render app URL
+const char* password = "g5abehq8";         // Your Wi-Fi password
+
+// *** NEW: MULTI-DEVICE SUPPORT ***
+// This must match EXACTLY what you type into the "Add Device" form on the dashboard.
+const char* deviceID = "ESP_001"; 
+
+// *** NEW: API ENDPOINT URL ***
+// If testing LOCALLY (VS Code), use your computer's local IP address from the terminal (e.g., http://192.168.0.103:5000/api/post_data). 
+// If deployed to Render, use: https://iot-based-environmental-gas-quality.onrender.com/api/post_data
+const char* serverUrl = "http://10.194.196.81:5000/api/post_data"; 
 // =================================================================
 
 // --- SENSOR PINS ---
-#define DHTPIN D3     // Digital pin D4
+#define DHTPIN D3     // Digital pin D3
 #define MQ_PIN A0     // Analog pin A0
 #define DHTTYPE DHT11 // We are using the DHT11 sensor
 
 // --- GLOBAL OBJECTS ---
 DHT dht(DHTPIN, DHTTYPE);
-WiFiClient client;
-HTTPClient http;
 
-// --- ONE-TIME SETUP ---
 void setup() {
-  Serial.begin(115200); // Start serial for debugging
+  Serial.begin(115200); 
   Serial.println("\n[IoT Monitor Starting Up]");
-  
-  dht.begin();          // Initialize the DHT sensor
-  
-  setup_wifi();         // Connect to Wi-Fi
+  dht.begin();          
+  setup_wifi();         
 }
 
-// --- MAIN LOOP ---
 void loop() {
-  // Read sensor data
+  // 1. Read sensor data
   float h = dht.readHumidity();
-  float t = dht.readTemperature(); // Read as Celsius
+  float t = dht.readTemperature(); 
   int g = analogRead(MQ_PIN);
 
-  // Check if sensor reads failed
+  // 2. Check if sensor reads failed
   if (isnan(h) || isnan(t)) {
     Serial.println("Failed to read from DHT sensor!");
-    // Wait 5 seconds and try again
     delay(5000);
     return;
   }
 
-  // Print values to the Serial Monitor (for testing)
+  // Print values to the Serial Monitor 
   Serial.println("--------------------");
-  Serial.print("Temperature: ");
-  Serial.print(t);
-  Serial.println(" °C");
-  Serial.print("Humidity: ");
-  Serial.print(h);
-  Serial.println(" %");
-  Serial.print("Gas Level: ");
-  Serial.println(g);
+  Serial.print("Device ID: "); Serial.println(deviceID);
+  Serial.print("Temperature: "); Serial.print(t); Serial.println(" °C");
+  Serial.print("Humidity: "); Serial.print(h); Serial.println(" %");
+  Serial.print("Gas Level: "); Serial.println(g);
 
-  // Create JSON document
+  // 3. Create JSON document
   StaticJsonDocument<200> doc;
+  
+  // *** NEW: Add Device ID to the payload ***
+  doc["device_id"] = deviceID; 
   doc["temperature"] = t;
   doc["humidity"] = h;
   doc["gas_level"] = g;
 
-  // Serialize JSON to a string
   char jsonBuffer[200];
   serializeJson(doc, jsonBuffer);
 
-  // Send the data
+  // 4. Send the data
   Serial.println("Sending data to server...");
-  http.begin(client, serverUrl); // Specify URL
-  http.addHeader("Content-Type", "application/json"); // Set content type
   
-  int httpCode = http.POST(jsonBuffer); // Send the POST request
+  WiFiClient client;
+  WiFiClientSecure secureClient;
+  HTTPClient http;
+
+  // Check if URL is HTTPS (Render) or HTTP (Local testing)
+  if (String(serverUrl).startsWith("https")) {
+    secureClient.setInsecure(); // Accept self-signed certificates if needed
+    http.begin(secureClient, serverUrl);
+  } else {
+    http.begin(client, serverUrl);
+  }
+  
+  http.addHeader("Content-Type", "application/json"); 
+  
+  int httpCode = http.POST(jsonBuffer); 
   
   if (httpCode > 0) {
     String payload = http.getString();
-    Serial.print("HTTP Response code: ");
-    Serial.println(httpCode);
-    Serial.print("Response payload: ");
-    Serial.println(payload);
+    Serial.print("HTTP Response code: "); Serial.println(httpCode);
+    Serial.print("Server Message: "); Serial.println(payload);
   } else {
     Serial.print("Error sending POST: ");
-    Serial.println(httpCode);
+    Serial.println(http.errorToString(httpCode));
   }
   
-  http.end(); // Free resources
+  http.end(); 
   Serial.println("--------------------");
 
-  // Wait for 2 minutes before sending next reading
-  // (ThingSpeak free tier limit is 15s, but 2 mins is good for a dashboard)
+  // Wait for 2 minutes (120000 ms) before next reading
+  // Change to 5000 (5 seconds) temporarily if you are actively testing the alarm!
   delay(120000); 
 }
 
-// --- CONNECT TO WIFI ---
 void setup_wifi() {
   delay(10);
   Serial.print("Connecting to ");
