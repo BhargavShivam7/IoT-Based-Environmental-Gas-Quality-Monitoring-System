@@ -24,7 +24,7 @@ const char* deviceID = "ESP_001";
 // *** NEW: API ENDPOINT URL ***
 // If testing LOCALLY (VS Code), use your computer's local IP address from the terminal (e.g., http://192.168.0.103:5000/api/post_data). 
 // If deployed to Render, use: https://iot-based-environmental-gas-quality.onrender.com/api/post_data
-const char* serverUrl = "http://10.194.196.81:5000/api/post_data"; 
+const char* serverUrl = "https://iot-based-environmental-gas-quality.onrender.com/api/post_data"; 
 // =================================================================
 
 // --- SENSOR PINS ---
