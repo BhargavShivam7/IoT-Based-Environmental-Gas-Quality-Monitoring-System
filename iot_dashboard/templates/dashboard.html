@@ -23,7 +23,6 @@
 </head>
 <body class="bg-gray-950 text-white h-screen flex flex-col overflow-hidden">
 
-    <!-- Top Navigation Bar -->
     <nav class="bg-gray-900 border-b border-gray-800 h-16 flex-none z-20">
         <div class="container mx-auto px-6 h-full flex justify-between items-center">
             <div class="flex items-center gap-3">
@@ -38,7 +37,6 @@
                     <span class="text-sm font-medium text-gray-300 pr-2">{{ user.username }}</span>
                 </div>
                 
-                <!-- NEW: Alarm Settings Button -->
                 <a href="/alarm_settings" class="text-red-400 hover:text-white transition p-2 rounded-full hover:bg-gray-800" title="Alarm Settings">
                     <i class="ph-bold ph-bell-ringing text-xl"></i>
                 </a>
@@ -55,7 +53,6 @@
 
     <div class="flex flex-1 overflow-hidden">
         
-        <!-- Sidebar -->
         <aside class="w-64 bg-gray-900 border-r border-gray-800 flex flex-col z-10">
             <div class="p-6 flex-1 overflow-y-auto">
                 <div class="flex justify-between items-center mb-4">
@@ -83,7 +80,6 @@
                 </div>
             </div>
 
-            <!-- Add Device Section -->
             <div class="p-4 border-t border-gray-800 bg-gray-900 flex flex-col gap-2">
                 
                 {% with messages = get_flashed_messages() %}
@@ -325,36 +321,4 @@
                     humChart.update();
 
                     gasChart.data.labels = labels;
-                    gasChart.data.datasets[0].data = history.map(d => d.gas_level);
-                    gasChart.update();
-
-                    const recentLogs = data.reverse().slice(0, 5); 
-                    const tableBody = document.getElementById('data-log-body');
-                    tableBody.innerHTML = ""; 
-
-                    recentLogs.forEach(row => {
-                        const time = new Date(row.timestamp).toLocaleTimeString();
-                        const isHighGas = row.gas_level > 300; // Leaving this visual status badge threshold at 300 for the log table
-                        const statusBadge = isHighGas 
-                            ? `<span class="px-2 py-1 rounded text-xs font-bold bg-red-500/20 text-red-400 border border-red-500/30">WARNING</span>`
-                            : `<span class="px-2 py-1 rounded text-xs font-bold bg-green-500/20 text-green-400 border border-green-500/30">OK</span>`;
-
-                        const tr = `
-                            <tr class="hover:bg-gray-800/50 transition border-b border-gray-800/50">
-                                <td class="px-6 py-4 font-mono text-gray-400">${time}</td>
-                                <td class="px-6 py-4">${statusBadge}</td>
-                                <td class="px-6 py-4 font-bold text-gray-200">${row.temperature.toFixed(1)} °C</td>
-                                <td class="px-6 py-4 font-bold text-gray-200">${row.humidity.toFixed(1)} %</td>
-                                <td class="px-6 py-4 font-bold text-gray-200">${row.gas_level}</td>
-                            </tr>
-                        `;
-                        tableBody.innerHTML += tr;
-                    });
-                }
-            } catch (e) {
-                console.error("Fetch error:", e);
-            }
-        }
-    </script>
-</body>
-</html>
+                    gasChart.data.datasets[0].data = history
