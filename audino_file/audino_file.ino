@@ -1,6 +1,6 @@
 /*
  * AetherSense Pro: Environmental Monitor & Alarm System
- * Hardware: NodeMCU (ESP8266 V3), DHT11, MQ-135, Active Buzzer Module
+ * Hardware: NodeMCU (ESP8266), DHT11, MQ-135, 5V Active Buzzer (High-Impedance Hack)
  */
 
 #include <ESP8266WiFi.h>
@@ -20,7 +20,7 @@ const char* serverUrl = "https://iot-based-environmental-gas-quality.onrender.co
 // =================================================================
 // --- PHYSICAL ALARM THRESHOLDS ---
 // =================================================================
-const int LOCAL_GAS_WARNING = 200; // Change to 100 for easy testing
+const int LOCAL_GAS_WARNING = 200; // Edge-Case Testing Threshold
 const int LOCAL_GAS_HAZARD = 300;
 
 // =================================================================
@@ -35,15 +35,15 @@ DHT dht(DHTPIN, DHTTYPE);
 
 // --- BACKGROUND TIMER ---
 unsigned long previousMillis = 0; 
-const long interval = 30000; // 30-second interval
+const long interval = 30000; 
 bool firstRun = true; 
 
 void setup() {
   Serial.begin(115200); 
   Serial.println("\n[AetherSense Node Booting...]");
   
-  pinMode(BUZZER_PIN, OUTPUT);
-  digitalWrite(BUZZER_PIN, LOW); // Start with buzzer completely silent
+  // THE HACK: Setting to INPUT disconnects the pin and forces silence
+  pinMode(BUZZER_PIN, INPUT); 
   
   dht.begin();          
   setup_wifi();         
@@ -51,31 +51,34 @@ void setup() {
 
 void loop() {
   // =================================================================
-  // 1. INSTANT ALARM SYSTEM (Runs thousands of times per second)
+  // 1. INSTANT ALARM SYSTEM
   // =================================================================
   int currentGas = analogRead(MQ_PIN);
 
   if (currentGas >= LOCAL_GAS_HAZARD) {
-    // RED HAZARD: Fast, aggressive beeping
-    digitalWrite(BUZZER_PIN, HIGH);
-    delay(100); 
+    // RED HAZARD: Switch to OUTPUT and pull LOW to scream
+    pinMode(BUZZER_PIN, OUTPUT);
     digitalWrite(BUZZER_PIN, LOW);
+    delay(100); 
+    // Switch to INPUT to silence
+    pinMode(BUZZER_PIN, INPUT); 
     delay(100);
   } 
   else if (currentGas >= LOCAL_GAS_WARNING) {
-    // ORANGE WARNING: Slower, periodic warning beep
-    digitalWrite(BUZZER_PIN, HIGH);
-    delay(500); 
+    // ORANGE WARNING
+    pinMode(BUZZER_PIN, OUTPUT);
     digitalWrite(BUZZER_PIN, LOW);
+    delay(500); 
+    pinMode(BUZZER_PIN, INPUT); 
     delay(1000);
   } 
   else {
-    // GREEN SAFE: Ensure buzzer is off
-    digitalWrite(BUZZER_PIN, LOW);
+    // GREEN SAFE: Ensure pin is disconnected (Silent)
+    pinMode(BUZZER_PIN, INPUT); 
   }
 
   // =================================================================
-  // 2. BACKGROUND DATA UPLOAD (Runs only every 30 seconds)
+  // 2. BACKGROUND DATA UPLOAD
   // =================================================================
   unsigned long currentMillis = millis();
   
@@ -96,7 +99,6 @@ void loop() {
     Serial.print("Humidity: "); Serial.print(h); Serial.println(" %");
     Serial.print("Gas Level: "); Serial.println(currentGas);
 
-    // Create the JSON payload
     StaticJsonDocument<200> doc;
     doc["device_id"] = deviceID; 
     doc["temperature"] = t;
@@ -106,15 +108,15 @@ void loop() {
     char jsonBuffer[200];
     serializeJson(doc, jsonBuffer);
 
-    // --- AUTO-RECONNECT FAILSAFE ---
-    // If the phone hotspot drops, aggressively try to get it back
+    // --- AGGRESSIVE AUTO-RECONNECT FAILSAFE ---
     if (WiFi.status() != WL_CONNECTED) {
-      Serial.print("Wi-Fi dropped! Attempting to reconnect");
+      Serial.print("Wi-Fi dropped! Forcing re-authentication");
       WiFi.disconnect();
-      WiFi.reconnect();
+      delay(100);
+      WiFi.begin(ssid, password); 
       
       int retries = 0;
-      while(WiFi.status() != WL_CONNECTED && retries < 10) {
+      while(WiFi.status() != WL_CONNECTED && retries < 20) { 
         delay(500);
         Serial.print(".");
         retries++;
@@ -123,11 +125,9 @@ void loop() {
     }
 
     // =================================================================
-    // THE FIX: RADIO SILENCE PROTOCOL
-    // Force the buzzer off and let the breadboard voltage stabilize 
-    // for 1 full second before turning on the Wi-Fi transmitter.
+    // RADIO SILENCE PROTOCOL (Using the Input Hack)
     // =================================================================
-    digitalWrite(BUZZER_PIN, LOW); 
+    pinMode(BUZZER_PIN, INPUT); 
     delay(1000); 
 
     // Send to Render
@@ -141,12 +141,8 @@ void loop() {
       secureClient.setInsecure(); 
       http.begin(secureClient, serverUrl);
       
-      // FIX 1: Max out the Render wake-up timer to 60 seconds
       http.setTimeout(60000); 
-      
       http.addHeader("Content-Type", "application/json"); 
-      
-      // FIX 2: THE SILVER BULLET. Tell Render to hang up the connection instantly!
       http.addHeader("Connection", "close"); 
       
       int httpCode = http.POST(jsonBuffer); 
@@ -167,6 +163,8 @@ void setup_wifi() {
   delay(10);
   Serial.print("Connecting to Wi-Fi: ");
   Serial.println(ssid);
+  
+  WiFi.setSleepMode(WIFI_NONE_SLEEP); 
   WiFi.begin(ssid, password);
   
   while (WiFi.status() != WL_CONNECTED) {

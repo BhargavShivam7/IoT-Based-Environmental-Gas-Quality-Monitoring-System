@@ -5,6 +5,7 @@ from flask_login import LoginManager, UserMixin, login_user, login_required, log
 from werkzeug.security import generate_password_hash, check_password_hash
 from itsdangerous import URLSafeTimedSerializer
 import datetime
+from datetime import timezone, timedelta  # <--- NEW
 import smtplib
 import threading # <--- NEW: Added threading library
 from email.mime.text import MIMEText
@@ -60,20 +61,28 @@ class Device(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     readings = db.relationship('SensorData', backref='device', lazy=True)
 
+# --- NEW: Helper function for Indian Standard Time (UTC +5:30) ---
+def get_local_time():
+    ist = timezone(timedelta(hours=5, minutes=30))
+    return datetime.datetime.now(ist)
+
 class SensorData(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     device_db_id = db.Column(db.Integer, db.ForeignKey('device.id'), nullable=False)
     temperature = db.Column(db.Float, nullable=False)
     humidity = db.Column(db.Float, nullable=False)
     gas_level = db.Column(db.Integer, nullable=False)
-    timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    
+    # --- UPDATED: Use the local time function instead of utcnow ---
+    timestamp = db.Column(db.DateTime, default=get_local_time)
 
     def to_dict(self):
         return {
             'temperature': self.temperature,
             'humidity': self.humidity,
             'gas_level': self.gas_level,
-            'timestamp': self.timestamp.isoformat()
+            # Format the time nicely before sending it to the dashboard
+            'timestamp': self.timestamp.strftime("%Y-%m-%d %I:%M:%S %p") 
         }
 
 @login_manager.user_loader
