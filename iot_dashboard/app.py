@@ -174,6 +174,26 @@ def logout():
 # =================================================================
 # --- DASHBOARD & SETTINGS ---
 # =================================================================
+@app.route('/delete_device/<int:device_id>', methods=['POST'])
+@login_required
+def delete_device(device_id):
+    # Find the device in the database
+    device = Device.query.get_or_404(device_id)
+    
+    # SECURITY: Ensure the person trying to delete it is the actual owner
+    if device.owner != current_user:
+        flash('Unauthorized action.', 'error')
+        return redirect(url_for('dashboard'))
+        
+    # Step 1: Delete all historical sensor readings attached to this device
+    SensorData.query.filter_by(device_db_id=device.id).delete()
+    
+    # Step 2: Delete the device itself
+    db.session.delete(device)
+    db.session.commit()
+    
+    flash(f'Device "{device.friendly_name}" has been permanently removed.', 'success')
+    return redirect(url_for('dashboard'))
 
 @app.route('/')
 @login_required
