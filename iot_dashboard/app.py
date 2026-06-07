@@ -6,6 +6,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from itsdangerous import URLSafeTimedSerializer
 import datetime
 import smtplib
+import threading # <--- NEW: Added threading library
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
@@ -82,7 +83,9 @@ def load_user(user_id):
 # =================================================================
 # --- ALERT HELPERS (EMAIL & SMS) ---
 # =================================================================
-def send_email(receiver_email, subject, body):
+
+# --- NEW: The actual email logic moved to a background worker function
+def _async_send_email(receiver_email, subject, body):
     if not receiver_email: return
     try:
         msg = MIMEMultipart()
@@ -90,7 +93,9 @@ def send_email(receiver_email, subject, body):
         msg['To'] = receiver_email
         msg['Subject'] = subject
         msg.attach(MIMEText(body, 'plain'))
-        server = smtplib.SMTP('smtp.gmail.com', 587)
+        
+        # Added a 10-second timeout so it will fail gracefully instead of freezing
+        server = smtplib.SMTP('smtp.gmail.com', 587, timeout=10)
         server.starttls() 
         server.login(SENDER_EMAIL, SENDER_PASSWORD)
         server.sendmail(SENDER_EMAIL, receiver_email, msg.as_string())
@@ -98,6 +103,11 @@ def send_email(receiver_email, subject, body):
         print(f"[*] Email sent to {receiver_email}")
     except Exception as e:
         print(f"[!] Failed to send email: {e}")
+
+def send_email(receiver_email, subject, body):
+    # --- NEW: Spawns the background thread and instantly returns control to the server
+    thread = threading.Thread(target=_async_send_email, args=(receiver_email, subject, body))
+    thread.start()
 
 def send_sms(phone_number, body):
     if not phone_number: return

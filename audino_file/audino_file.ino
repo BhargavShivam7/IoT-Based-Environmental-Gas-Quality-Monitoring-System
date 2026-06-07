@@ -1,118 +1,171 @@
 /*
- * IoT Environmental Monitor Firmware (PRO VERSION)
- * * Hardware: NodeMCU (ESP8266), DHT11, MQ-135
- * * Libraries: "DHT sensor library", "ArduinoJson"
+ * AetherSense Pro: Environmental Monitor & Alarm System
+ * Hardware: NodeMCU (ESP8266 V3), DHT11, MQ-135, Active Buzzer Module
  */
 
 #include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
-#include <WiFiClient.h>
 #include <WiFiClientSecure.h>
 #include <ArduinoJson.h>
 #include "DHT.h"
 
 // =================================================================
-// --- CONFIGURATION - YOU MUST EDIT THESE VALUES ---
+// --- CLOUD & NETWORK CONFIGURATION ---
 // =================================================================
-const char* ssid = "DarkHunterOP";         // Your Wi-Fi name
-const char* password = "g5abehq8";         // Your Wi-Fi password
-
-// *** NEW: MULTI-DEVICE SUPPORT ***
-// This must match EXACTLY what you type into the "Add Device" form on the dashboard.
+const char* ssid = "DarkHunterOP";         
+const char* password = "g5abehq8";         
 const char* deviceID = "ESP_001"; 
-
-// *** NEW: API ENDPOINT URL ***
-// If testing LOCALLY (VS Code), use your computer's local IP address from the terminal (e.g., http://192.168.0.103:5000/api/post_data). 
-// If deployed to Render, use: https://iot-based-environmental-gas-quality.onrender.com/api/post_data
 const char* serverUrl = "https://iot-based-environmental-gas-quality.onrender.com/api/post_data"; 
+
 // =================================================================
+// --- PHYSICAL ALARM THRESHOLDS ---
+// =================================================================
+const int LOCAL_GAS_WARNING = 200; // Change to 100 for easy testing
+const int LOCAL_GAS_HAZARD = 300;
 
-// --- SENSOR PINS ---
-#define DHTPIN D3     // Digital pin D3
-#define MQ_PIN A0     // Analog pin A0
-#define DHTTYPE DHT11 // We are using the DHT11 sensor
+// =================================================================
+// --- HARDWARE PINS ---
+// =================================================================
+#define DHTPIN D3     
+#define MQ_PIN A0     
+#define BUZZER_PIN D5 
 
-// --- GLOBAL OBJECTS ---
+#define DHTTYPE DHT11 
 DHT dht(DHTPIN, DHTTYPE);
+
+// --- BACKGROUND TIMER ---
+unsigned long previousMillis = 0; 
+const long interval = 30000; // 30-second interval
+bool firstRun = true; 
 
 void setup() {
   Serial.begin(115200); 
-  Serial.println("\n[IoT Monitor Starting Up]");
+  Serial.println("\n[AetherSense Node Booting...]");
+  
+  pinMode(BUZZER_PIN, OUTPUT);
+  digitalWrite(BUZZER_PIN, LOW); // Start with buzzer completely silent
+  
   dht.begin();          
   setup_wifi();         
 }
 
 void loop() {
-  // 1. Read sensor data
-  float h = dht.readHumidity();
-  float t = dht.readTemperature(); 
-  int g = analogRead(MQ_PIN);
+  // =================================================================
+  // 1. INSTANT ALARM SYSTEM (Runs thousands of times per second)
+  // =================================================================
+  int currentGas = analogRead(MQ_PIN);
 
-  // 2. Check if sensor reads failed
-  if (isnan(h) || isnan(t)) {
-    Serial.println("Failed to read from DHT sensor!");
-    delay(5000);
-    return;
+  if (currentGas >= LOCAL_GAS_HAZARD) {
+    // RED HAZARD: Fast, aggressive beeping
+    digitalWrite(BUZZER_PIN, HIGH);
+    delay(100); 
+    digitalWrite(BUZZER_PIN, LOW);
+    delay(100);
+  } 
+  else if (currentGas >= LOCAL_GAS_WARNING) {
+    // ORANGE WARNING: Slower, periodic warning beep
+    digitalWrite(BUZZER_PIN, HIGH);
+    delay(500); 
+    digitalWrite(BUZZER_PIN, LOW);
+    delay(1000);
+  } 
+  else {
+    // GREEN SAFE: Ensure buzzer is off
+    digitalWrite(BUZZER_PIN, LOW);
   }
 
-  // Print values to the Serial Monitor 
-  Serial.println("--------------------");
-  Serial.print("Device ID: "); Serial.println(deviceID);
-  Serial.print("Temperature: "); Serial.print(t); Serial.println(" °C");
-  Serial.print("Humidity: "); Serial.print(h); Serial.println(" %");
-  Serial.print("Gas Level: "); Serial.println(g);
-
-  // 3. Create JSON document
-  StaticJsonDocument<200> doc;
+  // =================================================================
+  // 2. BACKGROUND DATA UPLOAD (Runs only every 30 seconds)
+  // =================================================================
+  unsigned long currentMillis = millis();
   
-  // *** NEW: Add Device ID to the payload ***
-  doc["device_id"] = deviceID; 
-  doc["temperature"] = t;
-  doc["humidity"] = h;
-  doc["gas_level"] = g;
+  if (currentMillis - previousMillis >= interval || firstRun) {
+    previousMillis = currentMillis;
+    firstRun = false;
 
-  char jsonBuffer[200];
-  serializeJson(doc, jsonBuffer);
+    float h = dht.readHumidity();
+    float t = dht.readTemperature(); 
 
-  // 4. Send the data
-  Serial.println("Sending data to server...");
-  
-  WiFiClient client;
-  WiFiClientSecure secureClient;
-  HTTPClient http;
+    if (isnan(h) || isnan(t)) {
+      Serial.println("DHT read failed! Check wiring.");
+      return; 
+    }
 
-  // Check if URL is HTTPS (Render) or HTTP (Local testing)
-  if (String(serverUrl).startsWith("https")) {
-    secureClient.setInsecure(); // Accept self-signed certificates if needed
-    http.begin(secureClient, serverUrl);
-  } else {
-    http.begin(client, serverUrl);
+    Serial.println("\n--- Packaging Data ---");
+    Serial.print("Temp: "); Serial.print(t); Serial.println(" °C");
+    Serial.print("Humidity: "); Serial.print(h); Serial.println(" %");
+    Serial.print("Gas Level: "); Serial.println(currentGas);
+
+    // Create the JSON payload
+    StaticJsonDocument<200> doc;
+    doc["device_id"] = deviceID; 
+    doc["temperature"] = t;
+    doc["humidity"] = h;
+    doc["gas_level"] = currentGas;
+
+    char jsonBuffer[200];
+    serializeJson(doc, jsonBuffer);
+
+    // --- AUTO-RECONNECT FAILSAFE ---
+    // If the phone hotspot drops, aggressively try to get it back
+    if (WiFi.status() != WL_CONNECTED) {
+      Serial.print("Wi-Fi dropped! Attempting to reconnect");
+      WiFi.disconnect();
+      WiFi.reconnect();
+      
+      int retries = 0;
+      while(WiFi.status() != WL_CONNECTED && retries < 10) {
+        delay(500);
+        Serial.print(".");
+        retries++;
+      }
+      Serial.println();
+    }
+
+    // =================================================================
+    // THE FIX: RADIO SILENCE PROTOCOL
+    // Force the buzzer off and let the breadboard voltage stabilize 
+    // for 1 full second before turning on the Wi-Fi transmitter.
+    // =================================================================
+    digitalWrite(BUZZER_PIN, LOW); 
+    delay(1000); 
+
+    // Send to Render
+    if (WiFi.status() == WL_CONNECTED) {
+      Serial.println("Sending to Render Cloud...");
+      
+      WiFiClientSecure secureClient;
+      secureClient.setBufferSizes(512, 512); 
+      
+      HTTPClient http;
+      secureClient.setInsecure(); 
+      http.begin(secureClient, serverUrl);
+      
+      // FIX 1: Max out the Render wake-up timer to 60 seconds
+      http.setTimeout(60000); 
+      
+      http.addHeader("Content-Type", "application/json"); 
+      
+      // FIX 2: THE SILVER BULLET. Tell Render to hang up the connection instantly!
+      http.addHeader("Connection", "close"); 
+      
+      int httpCode = http.POST(jsonBuffer); 
+      
+      if (httpCode > 0) {
+        Serial.print("Server Response: "); Serial.println(httpCode);
+      } else {
+        Serial.print("Error sending POST: "); Serial.println(http.errorToString(httpCode));
+      }
+      http.end(); 
+    } else {
+      Serial.println("Wi-Fi disconnected. Waiting for next cycle.");
+    }
   }
-  
-  http.addHeader("Content-Type", "application/json"); 
-  
-  int httpCode = http.POST(jsonBuffer); 
-  
-  if (httpCode > 0) {
-    String payload = http.getString();
-    Serial.print("HTTP Response code: "); Serial.println(httpCode);
-    Serial.print("Server Message: "); Serial.println(payload);
-  } else {
-    Serial.print("Error sending POST: ");
-    Serial.println(http.errorToString(httpCode));
-  }
-  
-  http.end(); 
-  Serial.println("--------------------");
-
-  // Wait for 2 minutes (120000 ms) before next reading
-  // Change to 5000 (5 seconds) temporarily if you are actively testing the alarm!
-  delay(120000); 
 }
 
 void setup_wifi() {
   delay(10);
-  Serial.print("Connecting to ");
+  Serial.print("Connecting to Wi-Fi: ");
   Serial.println(ssid);
   WiFi.begin(ssid, password);
   
@@ -120,8 +173,7 @@ void setup_wifi() {
     delay(500);
     Serial.print(".");
   }
-  
-  Serial.println("\nWiFi connected!");
+  Serial.println("\nWi-Fi connected!");
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
 }
