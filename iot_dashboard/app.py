@@ -204,11 +204,18 @@ def dashboard():
 @login_required
 def settings():
     if request.method == 'POST':
+        # 1. Check for Password Updates
         new_password = request.form.get('new_password')
         if new_password:
             current_user.password = generate_password_hash(new_password)
-            db.session.commit()
-            flash('Password updated successfully!', 'success')
+            
+        # 2. THE FIX: Catch the Notification Email from your new HTML form
+        new_alert_email = request.form.get('alert_email')
+        if new_alert_email:
+            current_user.alert_email = new_alert_email
+            
+        db.session.commit()
+        flash('Settings updated successfully!', 'success')
         return redirect(url_for('settings'))
     return render_template('settings.html', user=current_user)
 
@@ -216,17 +223,22 @@ def settings():
 @login_required
 def alarm_settings():
     if request.method == 'POST':
-        current_user.alert_email = request.form.get('alert_email')
+        # 1. Update Notification Contact Info
+        new_alert_email = request.form.get('alert_email')
+        if new_alert_email:
+            current_user.alert_email = new_alert_email
+            
         current_user.alert_phone = request.form.get('alert_phone')
         
-        # Parse thresholds safely
+        # 2. Parse thresholds safely without resetting if blank
         try:
-            current_user.temp_warning = float(request.form.get('temp_warning', 35.0))
-            current_user.temp_hazard = float(request.form.get('temp_hazard', 45.0))
-            current_user.gas_warning = int(request.form.get('gas_warning', 200))
-            current_user.gas_hazard = int(request.form.get('gas_hazard', 300))
+            current_user.temp_warning = float(request.form.get('temp_warning') or current_user.temp_warning)
+            current_user.temp_hazard = float(request.form.get('temp_hazard') or current_user.temp_hazard)
+            current_user.gas_warning = int(request.form.get('gas_warning') or current_user.gas_warning)
+            current_user.gas_hazard = int(request.form.get('gas_hazard') or current_user.gas_hazard)
+            
             db.session.commit()
-            flash('Alarm thresholds updated successfully!', 'success')
+            flash('Alarm configurations updated successfully!', 'success')
         except ValueError:
             flash('Invalid input for thresholds. Please use numbers.', 'error')
             

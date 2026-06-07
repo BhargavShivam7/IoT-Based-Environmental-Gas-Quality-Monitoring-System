@@ -2,74 +2,106 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Settings - AetherSense Pro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Settings - AetherSense</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>body { font-family: 'Inter', sans-serif; }</style>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0b1120; }
+        .form-container { background-color: #111827; }
+        .input-dark { background-color: #0b1120; }
+    </style>
 </head>
-<body class="bg-gray-950 text-white h-screen flex flex-col">
+<body class="text-white h-screen flex flex-col">
 
+    <!-- Navbar -->
     <nav class="bg-gray-900 border-b border-gray-800 h-16 flex-none">
-        <div class="container mx-auto px-6 h-full flex justify-between items-center">
+        <div class="container mx-auto px-6 h-full flex justify-between items-center max-w-5xl">
             <div class="flex items-center gap-3">
                 <i class="ph-fill ph-circles-three-plus text-cyan-400 text-2xl"></i>
-                <a href="/" class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-500">AetherSense</a>
+                <h1 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-500">AetherSense</h1>
             </div>
-            <a href="/" class="text-sm bg-gray-800 hover:bg-gray-700 text-gray-300 px-4 py-2 rounded-lg transition border border-gray-700"><i class="ph-bold ph-arrow-left"></i> Back to Dashboard</a>
+            <div>
+                <a href="/" class="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-gray-300 px-4 py-2 rounded-lg text-sm transition border border-gray-700">
+                    <i class="ph-bold ph-arrow-left"></i> Back to Dashboard
+                </a>
+            </div>
         </div>
     </nav>
 
-    <main class="flex-1 overflow-y-auto p-6 md:p-10 flex justify-center">
+    <!-- Main Content -->
+    <main class="flex-1 flex justify-center items-start pt-12 px-6 overflow-y-auto">
         <div class="w-full max-w-2xl">
-            <h2 class="text-3xl font-bold mb-8 flex items-center gap-3"><i class="ph-duotone ph-gear"></i> Account Settings</h2>
+            
+            <h2 class="text-3xl font-bold text-white mb-8 flex items-center gap-3 justify-center">
+                <i class="ph-bold ph-gear"></i> Account Settings
+            </h2>
 
+            <!-- Flash Messages -->
             {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="bg-green-500/20 border border-green-500/50 text-green-400 p-3 rounded-lg mb-6 text-sm">{{ messages[0][1] }}</div>
-            {% endif %}
+              {% if messages %}
+                {% for category, message in messages %}
+                  <div class="mb-6 p-3 rounded text-sm text-center {% if category == 'error' %}bg-red-500/20 text-red-400 border border-red-500/30{% else %}bg-green-500/20 text-green-400 border border-green-500/30{% endif %}">
+                    {{ message }}
+                  </div>
+                {% endfor %}
+              {% endif %}
             {% endwith %}
 
-            <div class="bg-gray-900 rounded-2xl border border-gray-800 p-6 shadow-2xl">
-                <form action="/settings" method="POST" class="space-y-6">
-                    
-                    <div>
-                        <h3 class="text-lg font-bold text-gray-300 mb-4 border-b border-gray-800 pb-2">Profile</h3>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="text-[10px] text-gray-500 uppercase font-bold">Username</label>
-                                <input type="text" value="{{ user.username }}" disabled class="w-full bg-gray-950 border border-gray-800 rounded p-2 text-sm text-gray-400 cursor-not-allowed">
-                            </div>
-                            <div>
-                                <label class="text-[10px] text-gray-500 uppercase font-bold">Account Email</label>
-                                <input type="text" value="{{ user.email }}" disabled class="w-full bg-gray-950 border border-gray-800 rounded p-2 text-sm text-gray-400 cursor-not-allowed">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <h3 class="text-lg font-bold text-gray-300 mb-4 border-b border-gray-800 pb-2">Alert Preferences</h3>
+            <!-- Settings Form -->
+            <form action="/settings" method="POST" class="form-container border border-gray-800 rounded-xl p-8 shadow-2xl mb-12">
+                
+                <!-- Profile Section -->
+                <div class="mb-8">
+                    <h3 class="text-lg font-semibold text-white mb-3">Profile</h3>
+                    <div class="border-t border-gray-800 mb-5"></div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label class="text-[10px] text-gray-400 uppercase font-bold">Send Emergency Alerts To:</label>
-                            <input type="email" name="alert_email" value="{{ user.alert_email or '' }}" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm text-white focus:border-cyan-500 focus:outline-none">
-                            <p class="text-xs text-gray-500 mt-1">If empty, you will not receive smoke or heat warnings.</p>
+                            <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Username</label>
+                            <!-- Readonly display of username -->
+                            <input type="text" value="{{ user.username }}" class="w-full input-dark border border-gray-800 rounded p-2.5 text-sm text-gray-400 cursor-not-allowed focus:outline-none" readonly>
                         </div>
-                    </div>
-
-                    <div>
-                        <h3 class="text-lg font-bold text-gray-300 mb-4 border-b border-gray-800 pb-2">Security</h3>
                         <div>
-                            <label class="text-[10px] text-gray-400 uppercase font-bold">New Password</label>
-                            <input type="password" name="new_password" placeholder="Leave blank to keep current password" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm text-white focus:border-cyan-500 focus:outline-none">
+                            <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Account Email</label>
+                            <!-- Readonly display of master account email -->
+                            <input type="email" value="{{ user.email }}" class="w-full input-dark border border-gray-800 rounded p-2.5 text-sm text-gray-400 cursor-not-allowed focus:outline-none" readonly>
                         </div>
                     </div>
+                </div>
 
-                    <div class="pt-4 border-t border-gray-800 flex justify-end">
-                        <button type="submit" class="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-6 rounded-lg transition shadow-lg shadow-cyan-900/20">Save Settings</button>
+                <!-- Alert Preferences Section -->
+                <div class="mb-8">
+                    <h3 class="text-lg font-semibold text-white mb-3">Alert Preferences</h3>
+                    <div class="border-t border-gray-800 mb-5"></div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Send Emergency Alerts To:</label>
+                        <!-- THE FIX: Added name="alert_email" and value="{{ user.alert_email }}" -->
+                        <input type="email" name="alert_email" value="{{ user.alert_email }}" placeholder="Enter email for notifications" class="w-full input-dark border border-gray-700 rounded p-2.5 text-sm text-white focus:border-cyan-500 focus:outline-none transition">
+                        <p class="text-[11px] text-gray-500 mt-2">If empty, you will not receive smoke or heat warnings.</p>
                     </div>
-                </form>
-            </div>
+                </div>
+
+                <!-- Security Section -->
+                <div class="mb-8">
+                    <h3 class="text-lg font-semibold text-white mb-3">Security</h3>
+                    <div class="border-t border-gray-800 mb-5"></div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">New Password</label>
+                        <input type="password" name="new_password" placeholder="Leave blank to keep current password" class="w-full input-dark border border-gray-700 rounded p-2.5 text-sm text-white focus:border-cyan-500 focus:outline-none transition">
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="flex justify-end pt-2">
+                    <button type="submit" class="bg-[#06b6d4] hover:bg-cyan-400 text-white font-semibold py-2.5 px-6 rounded-lg transition">
+                        Save Settings
+                    </button>
+                </div>
+            </form>
+
         </div>
     </main>
+
 </body>
 </html>
