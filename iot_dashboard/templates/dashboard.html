@@ -9,11 +9,8 @@
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
-        /* Smooth fade-in animation */
         .fade-in { animation: fadeIn 0.5s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
-        /* Custom scrollbar for table */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: #1f2937; }
         ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
@@ -23,37 +20,43 @@
 </head>
 <body class="bg-gray-950 text-white h-screen flex flex-col overflow-hidden">
 
-    <nav class="bg-gray-900 border-b border-gray-800 h-16 flex-none z-20">
-        <div class="container mx-auto px-6 h-full flex justify-between items-center">
-            <div class="flex items-center gap-3">
-                <i class="ph-fill ph-circles-three-plus text-cyan-400 text-2xl"></i>
+    <nav class="bg-gray-900 border-b border-gray-800 h-16 flex-none z-50 relative">
+        <div class="container mx-auto px-4 md:px-6 h-full flex justify-between items-center">
+            
+            <div class="flex items-center gap-2 md:gap-3">
+                <button onclick="toggleSidebar()" class="md:hidden text-gray-400 hover:text-white transition focus:outline-none p-1">
+                    <i class="ph-bold ph-list text-2xl"></i>
+                </button>
+                <i class="ph-fill ph-circles-three-plus text-cyan-400 text-2xl hidden md:block"></i>
                 <h1 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-500">AetherSense</h1>
             </div>
-            <div class="flex items-center gap-4">
-                <div class="flex items-center gap-2 bg-gray-800 px-3 py-1.5 rounded-full border border-gray-700 cursor-pointer hover:border-cyan-500 transition" onclick="window.location.href='/settings'" title="Account Settings">
-                    <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-xs font-bold">
+            
+            <div class="flex items-center gap-3 md:gap-4">
+                <div class="flex items-center gap-2 bg-gray-800 px-2 py-1 md:px-3 md:py-1.5 rounded-full border border-gray-700 cursor-pointer hover:border-cyan-500 transition" onclick="window.location.href='/settings'" title="Account Settings">
+                    <div class="w-6 h-6 md:w-8 md:h-8 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-[10px] md:text-xs font-bold">
                         {{ user.username[0] | upper }}
                     </div>
-                    <span class="text-sm font-medium text-gray-300 pr-2">{{ user.username }}</span>
+                    <span class="text-xs md:text-sm font-medium text-gray-300 pr-1 md:pr-2 hidden sm:block">{{ user.username }}</span>
                 </div>
                 
-                <a href="/alarm_settings" class="text-red-400 hover:text-white transition p-2 rounded-full hover:bg-gray-800" title="Alarm Settings">
-                    <i class="ph-bold ph-bell-ringing text-xl"></i>
+                <a href="/alarm_settings" class="text-red-400 hover:text-white transition p-1.5 md:p-2 rounded-full hover:bg-gray-800" title="Alarm Settings">
+                    <i class="ph-bold ph-bell-ringing text-lg md:text-xl"></i>
                 </a>
                 
-                <a href="/settings" class="text-gray-400 hover:text-white transition p-2 rounded-full hover:bg-gray-800" title="Settings">
-                    <i class="ph-bold ph-gear text-xl"></i>
+                <a href="/settings" class="text-gray-400 hover:text-white transition p-1.5 md:p-2 rounded-full hover:bg-gray-800 hidden sm:block" title="Settings">
+                    <i class="ph-bold ph-gear text-lg md:text-xl"></i>
                 </a>
-                <a href="/logout" class="text-gray-400 hover:text-red-400 transition p-2 rounded-full hover:bg-gray-800" title="Logout">
-                    <i class="ph-bold ph-sign-out text-xl"></i>
+                
+                <a href="/logout" class="text-gray-400 hover:text-red-400 transition p-1.5 md:p-2 rounded-full hover:bg-gray-800" title="Logout">
+                    <i class="ph-bold ph-sign-out text-lg md:text-xl"></i>
                 </a>
             </div>
         </div>
     </nav>
 
-    <div class="flex flex-1 overflow-hidden">
+    <div class="flex flex-1 overflow-hidden relative">
         
-        <aside class="w-64 bg-gray-900 border-r border-gray-800 flex flex-col z-10">
+        <aside id="sidebar" class="absolute md:relative z-40 w-64 h-full transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out bg-gray-900 border-r border-gray-800 flex flex-col shadow-2xl md:shadow-none">
             <div class="p-6 flex-1 overflow-y-auto">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider">My Rooms</h3>
@@ -63,7 +66,6 @@
                 <div class="space-y-2">
                     {% for device in user.devices %}
                         <div class="relative group/item flex items-center">
-                            
                             <button onclick="loadDevice({{ device.id }}, '{{ device.friendly_name }}')" 
                                     class="w-full text-left p-3 rounded-lg bg-gray-800/50 hover:bg-gray-800 border border-gray-800 hover:border-gray-700 transition group flex items-center gap-3 relative overflow-hidden pr-10">
                                 <div class="absolute left-0 top-0 bottom-0 w-1 bg-cyan-500 opacity-0 group-hover:opacity-100 transition"></div>
@@ -80,7 +82,6 @@
                                     <i class="ph-bold ph-trash text-lg"></i>
                                 </button>
                             </form>
-                            
                         </div>
                     {% else %}
                         <div class="text-center py-8 border-2 border-dashed border-gray-800 rounded-lg">
@@ -92,7 +93,6 @@
             </div>
 
             <div class="p-4 border-t border-gray-800 bg-gray-900 flex flex-col gap-2">
-                
                 {% with messages = get_flashed_messages() %}
                 {% if messages %}
                     <div class="bg-blue-500/20 text-blue-400 text-xs p-2 rounded border border-blue-500/30 text-center mb-2">
@@ -123,106 +123,104 @@
             </div>
         </aside>
 
-        <main class="flex-1 overflow-y-auto bg-gray-950 p-6 md:p-10 relative">
+        <div id="mobile-overlay" class="absolute inset-0 bg-gray-950/80 z-30 hidden md:hidden backdrop-blur-sm transition-opacity" onclick="toggleSidebar()"></div>
+
+        <main class="flex-1 overflow-y-auto bg-gray-950 p-4 md:p-10 relative">
             
-            <div id="empty-state" class="absolute inset-0 flex flex-col items-center justify-center text-gray-600 pointer-events-none">
+            <div id="empty-state" class="absolute inset-0 flex flex-col items-center justify-center text-gray-600 pointer-events-none px-4 text-center">
                 <i class="ph-duotone ph-broadcast text-6xl mb-4 opacity-20"></i>
-                <p class="text-lg font-medium">Select a room to monitor live environment data</p>
+                <p class="text-sm md:text-lg font-medium">Select a room from the menu to monitor live data</p>
             </div>
 
-            <div id="dashboard-content" class="hidden max-w-7xl mx-auto space-y-8 fade-in">
+            <div id="dashboard-content" class="hidden max-w-7xl mx-auto space-y-6 md:space-y-8 fade-in pb-10">
                 
                 <header class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                        <h2 class="text-3xl font-bold text-white flex items-center gap-3">
+                        <h2 class="text-2xl md:text-3xl font-bold text-white flex items-center gap-3">
                             <span id="current-room-name">Living Room</span>
                             <span class="px-2 py-0.5 rounded-full bg-green-500/10 text-green-400 text-xs font-bold border border-green-500/20 flex items-center gap-1">
                                 <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span> ONLINE
                             </span>
                         </h2>
-                        <p class="text-gray-400 text-sm mt-1 flex items-center gap-2">
-                            <i class="ph-fill ph-wifi-high"></i> Signal Strength: Good
+                        <p class="text-gray-400 text-xs md:text-sm mt-1 flex items-center gap-2">
+                            <i class="ph-fill ph-wifi-high"></i> Signal: Good
                             <span class="text-gray-600">|</span>
-                            <i class="ph-fill ph-clock"></i> Last Update: <span id="last-update-time">Just now</span>
+                            <i class="ph-fill ph-clock"></i> <span id="last-update-time">Just now</span>
                         </p>
                     </div>
                     <div class="flex gap-2">
-                        <button onclick="fetchData()" class="p-2 bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white rounded-lg border border-gray-700 transition" title="Refresh Data">
-                            <i class="ph-bold ph-arrows-clockwise"></i>
+                        <button onclick="fetchData()" class="p-2 bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white rounded-lg border border-gray-700 transition flex items-center gap-2 text-sm" title="Refresh Data">
+                            <i class="ph-bold ph-arrows-clockwise"></i> <span class="md:hidden">Refresh</span>
                         </button>
                     </div>
                 </header>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                     
                     <div class="bg-gray-900 rounded-2xl border border-gray-800 p-5 shadow-2xl relative overflow-hidden group hover:border-red-500/30 transition duration-300">
                         <div class="absolute -right-10 -top-10 w-32 h-32 bg-red-600/10 rounded-full blur-3xl group-hover:bg-red-600/20 transition"></div>
-                        
                         <div class="flex justify-between items-start mb-4 relative z-10">
                             <div>
                                 <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Temperature</p>
-                                <h3 id="temp-val" class="text-4xl font-bold text-white tracking-tight">--</h3>
+                                <h3 id="temp-val" class="text-3xl md:text-4xl font-bold text-white tracking-tight">--</h3>
                             </div>
                             <div class="p-2 bg-red-500/10 rounded-lg text-red-400 border border-red-500/20">
                                 <i class="ph-fill ph-thermometer text-xl"></i>
                             </div>
                         </div>
-                        <div class="h-32 w-full">
+                        <div class="h-24 md:h-32 w-full">
                             <canvas id="tempChart"></canvas>
                         </div>
                     </div>
 
                     <div class="bg-gray-900 rounded-2xl border border-gray-800 p-5 shadow-2xl relative overflow-hidden group hover:border-blue-500/30 transition duration-300">
                         <div class="absolute -right-10 -top-10 w-32 h-32 bg-blue-600/10 rounded-full blur-3xl group-hover:bg-blue-600/20 transition"></div>
-                        
                         <div class="flex justify-between items-start mb-4 relative z-10">
                             <div>
                                 <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Humidity</p>
-                                <h3 id="hum-val" class="text-4xl font-bold text-white tracking-tight">--</h3>
+                                <h3 id="hum-val" class="text-3xl md:text-4xl font-bold text-white tracking-tight">--</h3>
                             </div>
                             <div class="p-2 bg-blue-500/10 rounded-lg text-blue-400 border border-blue-500/20">
                                 <i class="ph-fill ph-drop text-xl"></i>
                             </div>
                         </div>
-                        <div class="h-32 w-full">
+                        <div class="h-24 md:h-32 w-full">
                             <canvas id="humChart"></canvas>
                         </div>
                     </div>
 
                     <div class="bg-gray-900 rounded-2xl border border-gray-800 p-5 shadow-2xl relative overflow-hidden group hover:border-emerald-500/30 transition duration-300">
                         <div class="absolute -right-10 -top-10 w-32 h-32 bg-emerald-600/10 rounded-full blur-3xl group-hover:bg-emerald-600/20 transition"></div>
-                        
                         <div class="flex justify-between items-start mb-4 relative z-10">
                             <div>
                                 <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Air Quality</p>
-                                <h3 id="gas-val" class="text-4xl font-bold text-white tracking-tight">--</h3>
+                                <h3 id="gas-val" class="text-3xl md:text-4xl font-bold text-white tracking-tight">--</h3>
                             </div>
                             <div class="p-2 bg-emerald-500/10 rounded-lg text-emerald-400 border border-emerald-500/20">
                                 <i class="ph-fill ph-wind text-xl"></i>
                             </div>
                         </div>
-                        <div class="h-32 w-full">
+                        <div class="h-24 md:h-32 w-full">
                             <canvas id="gasChart"></canvas>
                         </div>
                     </div>
                 </div>
 
                 <div class="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden shadow-lg">
-                    <div class="px-6 py-4 border-b border-gray-800 flex justify-between items-center bg-gray-800/50">
+                    <div class="px-4 md:px-6 py-4 border-b border-gray-800 flex justify-between items-center bg-gray-800/50">
                         <h3 class="text-sm font-bold text-white flex items-center gap-2">
-                            <i class="ph-bold ph-list-dashes text-gray-400"></i> Recent Data Log
+                            <i class="ph-bold ph-list-dashes text-gray-400"></i> Recent Log
                         </h3>
-                        <span class="text-xs text-gray-500 font-mono">Real-time Feed</span>
                     </div>
                     <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse">
+                        <table class="w-full text-left border-collapse min-w-[600px]">
                             <thead>
                                 <tr class="text-xs text-gray-400 bg-gray-900/50 border-b border-gray-800 uppercase tracking-wider">
-                                    <th class="px-6 py-3 font-medium">Timestamp</th>
-                                    <th class="px-6 py-3 font-medium">Status</th>
-                                    <th class="px-6 py-3 font-medium">Temperature</th>
-                                    <th class="px-6 py-3 font-medium">Humidity</th>
-                                    <th class="px-6 py-3 font-medium">Gas Level</th>
+                                    <th class="px-4 md:px-6 py-3 font-medium">Time</th>
+                                    <th class="px-4 md:px-6 py-3 font-medium">Status</th>
+                                    <th class="px-4 md:px-6 py-3 font-medium">Temp</th>
+                                    <th class="px-4 md:px-6 py-3 font-medium">Humid</th>
+                                    <th class="px-4 md:px-6 py-3 font-medium">Gas</th>
                                 </tr>
                             </thead>
                             <tbody id="data-log-body" class="text-sm text-gray-300 divide-y divide-gray-800">
@@ -240,6 +238,23 @@
         let currentDeviceId = null;
         let tempChart, humChart, gasChart = null;
         let fetchInterval = null;
+
+        // NEW: Function to open and close the mobile sidebar
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('mobile-overlay');
+            
+            sidebar.classList.toggle('-translate-x-full');
+            
+            if (overlay.classList.contains('hidden')) {
+                overlay.classList.remove('hidden');
+                // Small delay to allow the element to render before fading in
+                setTimeout(() => overlay.classList.add('opacity-100'), 10);
+            } else {
+                overlay.classList.remove('opacity-100');
+                setTimeout(() => overlay.classList.add('hidden'), 300); // Wait for transition
+            }
+        }
 
         function createCompactChart(ctx, colorHex, gradientStart, gradientEnd) {
             const gradient = ctx.createLinearGradient(0, 0, 0, 150);
@@ -267,10 +282,7 @@
                     plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } },
                     scales: {
                         x: { display: false }, 
-                        y: { 
-                            display: false,    
-                            min: 0             
-                        }
+                        y: { display: false, min: 0 }
                     },
                     layout: { padding: { left: -10, right: 0, bottom: 0, top: 0 } } 
                 }
@@ -302,6 +314,14 @@
             fetchData();
             if (fetchInterval) clearInterval(fetchInterval);
             fetchInterval = setInterval(fetchData, 5000);
+            
+            // NEW: Automatically hide the sidebar on mobile after making a selection
+            if (window.innerWidth < 768) {
+                const sidebar = document.getElementById('sidebar');
+                if (!sidebar.classList.contains('-translate-x-full')) {
+                    toggleSidebar();
+                }
+            }
         }
 
         async function fetchData() {
@@ -319,7 +339,7 @@
                     document.getElementById('gas-val').textContent = latest.gas_level;
                     
                     const date = new Date(latest.timestamp);
-                    document.getElementById('last-update-time').textContent = date.toLocaleTimeString();
+                    document.getElementById('last-update-time').textContent = date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
 
                     const labels = history.map(d => ""); 
                     
@@ -340,44 +360,33 @@
                     tableBody.innerHTML = ""; 
 
                     recentLogs.forEach(row => {
-                        const time = new Date(row.timestamp).toLocaleTimeString();
-                        const isHighGas = row.gas_level > 300; // Leaving this visual status badge threshold at 300 for the log table
+                        const time = new Date(row.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                        const isHighGas = row.gas_level > 300; 
                         const statusBadge = isHighGas 
-                            ? `<span class="px-2 py-1 rounded text-xs font-bold bg-red-500/20 text-red-400 border border-red-500/30">WARNING</span>`
-                            : `<span class="px-2 py-1 rounded text-xs font-bold bg-green-500/20 text-green-400 border border-green-500/30">OK</span>`;
+                            ? `<span class="px-2 py-1 rounded text-[10px] font-bold bg-red-500/20 text-red-400 border border-red-500/30">WARN</span>`
+                            : `<span class="px-2 py-1 rounded text-[10px] font-bold bg-green-500/20 text-green-400 border border-green-500/30">OK</span>`;
 
                         const tr = `
                             <tr class="hover:bg-gray-800/50 transition border-b border-gray-800/50">
-                                <td class="px-6 py-4 font-mono text-gray-400">${time}</td>
-                                <td class="px-6 py-4">${statusBadge}</td>
-                                <td class="px-6 py-4 font-bold text-gray-200">${row.temperature.toFixed(1)} °C</td>
-                                <td class="px-6 py-4 font-bold text-gray-200">${row.humidity.toFixed(1)} %</td>
-                                <td class="px-6 py-4 font-bold text-gray-200">${row.gas_level}</td>
+                                <td class="px-4 md:px-6 py-3 font-mono text-gray-400 text-xs">${time}</td>
+                                <td class="px-4 md:px-6 py-3">${statusBadge}</td>
+                                <td class="px-4 md:px-6 py-3 font-bold text-gray-200 text-sm">${row.temperature.toFixed(1)}°</td>
+                                <td class="px-4 md:px-6 py-3 font-bold text-gray-200 text-sm">${row.humidity.toFixed(1)}%</td>
+                                <td class="px-4 md:px-6 py-3 font-bold text-gray-200 text-sm">${row.gas_level}</td>
                             </tr>
                         `;
                         tableBody.innerHTML += tr;
                     });
                 } else {
-                    // Wipe the screen clean if the room has no data
                     document.getElementById('temp-val').textContent = "--";
                     document.getElementById('hum-val').textContent = "--";
                     document.getElementById('gas-val').textContent = "--";
-                    document.getElementById('last-update-time').textContent = "Awaiting Connection...";
+                    document.getElementById('last-update-time').textContent = "Awaiting...";
 
-                    // Wipe the charts
-                    tempChart.data.labels = [];
-                    tempChart.data.datasets[0].data = [];
-                    tempChart.update();
+                    tempChart.data.labels = []; tempChart.data.datasets[0].data = []; tempChart.update();
+                    humChart.data.labels = []; humChart.data.datasets[0].data = []; humChart.update();
+                    gasChart.data.labels = []; gasChart.data.datasets[0].data = []; gasChart.update();
 
-                    humChart.data.labels = [];
-                    humChart.data.datasets[0].data = [];
-                    humChart.update();
-
-                    gasChart.data.labels = [];
-                    gasChart.data.datasets[0].data = [];
-                    gasChart.update();
-
-                    // Wipe the log table
                     const tableBody = document.getElementById('data-log-body');
                     tableBody.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-gray-600 italic">Waiting for sensor data...</td></tr>`;
                 }
